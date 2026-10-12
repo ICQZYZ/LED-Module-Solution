@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>LED模组BOM配件智能配比与报价器</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f1f5f9;
+    --card:#ffffff;
+    --muted:#64748b;
+    --accent:#2563eb;
+    --accent-light:#eff6ff;
+    --success:#16a34a;
+    --warning:#d97706;
+    --border:#e2e8f0;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,var(--bg),#e2e8f0);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#0f172a;line-height:1.5}
+  .app{max-width:1240px;margin:24px auto;padding:16px}
+  header{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+  .logo{width:50px;height:50px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#60a5fa);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px;box-shadow:0 6px 16px rgba(37,99,235,0.2)}
+  h1{margin:0;font-size:22px;font-weight:700}
+  .toolbar{margin-left:auto;display:flex;gap:8px}
+  .btn{background:var(--accent);color:white;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-weight:600;transition:all 0.2s;font-size:13px}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(37,99,235,0.3)}
+  .btn.lang{background:#0f172a;color:#fff}
+  .panel{background:var(--card);border-radius:var(--radius);padding:22px;margin-bottom:18px;box-shadow:0 6px 24px rgba(15,23,42,0.05);border:1px solid rgba(226,232,240,0.8)}
+  .section-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:10px}
+  .section-title h2{margin:0;font-size:16px;font-weight:700;color:#1e293b}
+  .grid{display:grid;gap:14px}
+  .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+  .grid.cols-4{grid-template-columns:repeat(4,1fr)}
+  .field{background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--border)}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;font-weight:500}
+  input[type="number"], input[type="text"], select{width:100%;padding:8px 10px;border-radius:6px;border:1px solid #cbd5e1;font-size:13px;background:#fff;outline:none;font-family:inherit}
+  input:focus, select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,0.12)}
+  .small{font-size:12px;color:var(--muted)}
+  .result{font-weight:700;color:#0f172a;margin-top:4px;font-size:15px;font-variant-numeric:tabular-nums}
+  .highlight{color:var(--accent)}
+
+  /* 表格样式 */
+  .bom-table{width:100%;border-collapse:collapse;margin-top:10px;background:#fff;border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+  .bom-table th{background:#f1f5f9;color:#334155;font-size:13px;font-weight:600;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+  .bom-table td{padding:9px 12px;font-size:13px;border-bottom:1px solid #f1f5f9;color:#1e293b}
+  .bom-table tr:hover td{background:#f8fafc}
+  .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;background:#e2e8f0;color:#475569}
+  .badge.primary{background:#dbeafe;color:#1d4ed8}
+  .badge.success{background:#dcfce7;color:#15803d}
+
+  /* 细化结算分项卡片 */
+  .cost-breakdown{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+  .cost-card{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:14px}
+  .cost-card h3{margin:0 0 8px 0;font-size:14px;color:#1e293b;border-bottom:1px dashed #cbd5e1;padding-bottom:6px}
+  .cost-line{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+  .cost-line span:first-child{color:var(--muted)}
+  .cost-line span:last-child{font-weight:600;font-variant-numeric:tabular-nums}
+
+  /* 综合总价看板 */
+  .summary-banner{background:linear-gradient(135deg,#0f172a,#1e293b);color:white;border-radius:12px;padding:22px;display:flex;justify-content:space-between;align-items:center;margin-top:18px}
+  .summary-banner .big-total{font-size:28px;font-weight:700;color:#38bdf8;font-variant-numeric:tabular-nums}
+  .summary-meta{display:flex;gap:14px;margin-bottom:8px;font-size:13px;color:#cbd5e1;flex-wrap:wrap}
+  .summary-meta span b{color:#38bdf8}
+
+  @media(max-width:960px){
+    .grid.cols-2, .grid.cols-3, .grid.cols-4, .cost-breakdown{grid-template-columns:1fr}
+    .summary-banner{flex-direction:column;align-items:flex-start;gap:14px}
+    header{flex-wrap:wrap}
+    .toolbar{margin-left:0}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">BOM</div>
+    <div>
+      <h1 id="app_title">LED模组配件BOM智能配比与报价器</h1>
+    </div>
+    <div class="toolbar">
+      <button id="toggleLang" class="btn lang">EN</button>
+      <button id="exportExcel" class="btn ghost">导出完整 Excel (.xlsx)</button>
+      <button id="exportPdf" class="btn ghost">导出 PDF 报价</button>
+    </div>
+  </header>
+
+  <!-- 第 1 步：基础规格与模组数量 -->
+  <section class="panel">
+    <div class="section-title">
+      <h2 id="sec1_title">1. 模组规格、点间距与数量设定</h2>
+      <div class="small muted" id="sec1_desc">设定基础参数，系统自动计算模组总面积与全屏总像素点数。</div>
+    </div>
+
+    <div class="grid cols-4">
+      <!-- 点间距 -->
+      <div class="field">
+        <label id="lbl_pitch">点间距规格 (Pixel Pitch)</label>
+        <select id="pitch_select">
+          <option value="0.9">P0.9</option>
+          <option value="1.25">P1.25</option>
+          <option value="1.538">P1.538</option>
+          <option value="1.86">P1.86</option>
+          <option value="2">P2</option>
+          <option value="2.5" selected>P2.5</option>
+          <option value="3.076">P3.076</option>
+          <option value="4">P4</option>
+          <option value="4.44">P4.44</option>
+          <option value="5">P5</option>
+          <option value="6.67">P6.67</option>
+          <option value="8">P8</option>
+          <option value="10">P10</option>
+          <option value="custom">-- 手动输入点间距 --</option>
+        </select>
+        <input id="custom_pitch_input" type="number" min="0.1" step="any" placeholder="输入点间距(mm)" style="display:none;margin-top:8px" value="2.5">
+      </div>
+
+      <!-- 模组尺寸 -->
+      <div class="field">
+        <label id="lbl_module">模组规格尺寸 (宽 × 高)</label>
+        <select id="module_preset">
+          <option value="320x160" selected>320 × 160 mm</option>
+          <option value="250x250">250 × 250 mm</option>
+          <option value="160x160">160 × 160 mm</option>
+          <option value="320x320">320 × 320 mm</option>
+          <option value="custom">-- 手动输入尺寸 --</option>
+        </select>
+        <div id="customModuleWrap" style="display:none;margin-top:8px" class="grid cols-2">
+          <input id="custom_mod_w" type="number" min="10" placeholder="宽(mm)" value="320">
+          <input id="custom_mod_h" type="number" min="10" placeholder="高(mm)" value="160">
+        </div>
+      </div>
+
+      <!-- 数量输入模式 -->
+      <div class="field">
+        <label id="lbl_input_mode">模组数量输入模式</label>
+        <select id="mod_input_mode">
+          <option value="total" selected>直接输入模组总数 (默认)</option>
+          <option value="array">输入行列数量 (宽 × 高)</option>
+        </select>
+      </div>
+
+      <!-- 数量输入框 (默认 999) -->
+      <div class="field">
+        <label id="lbl_mod_qty">模组数量设定 (Module Quantity Setup)</label>
+        <div id="modeTotalWrap">
+          <input id="mod_total_input" type="number" min="1" step="1" value="999" placeholder="输入模组总数">
+        </div>
+        <div id="modeArrayWrap" style="display:none" class="grid cols-2">
+          <input id="mod_cols" type="number" min="1" step="1" value="37" placeholder="宽向数量">
+          <input id="mod_rows" type="number" min="1" step="1" value="27" placeholder="高向数量">
+        </div>
+      </div>
+    </div>
+
+    <!-- 统计看板 -->
+    <div style="margin-top:14px;padding:12px 14px;background:#f8fafc;border-radius:8px;border:1px solid var(--border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div><span class="small muted" id="stat_lbl_mod">模组总数：</span><b class="highlight" id="stat_val_mod">999 pcs</b></div>
+      <div><span class="small muted" id="stat_lbl_single_px">单模组像素：</span><b id="stat_val_single_px">128 × 64 = 8,192 点</b></div>
+      <div><span class="small muted" id="stat_lbl_tot_px">全屏总像素：</span><b class="highlight" id="stat_val_tot_px">8,183,808 像素</b></div>
+      <div><span class="small muted" id="stat_lbl_area">总面积：</span><b class="highlight" id="stat_val_area">51.15 ㎡</b></div>
+    </div>
+  </section>
+
+  <!-- 第 2 步：BOM 物料清单 -->
+  <section class="panel">
+    <div class="section-title">
+      <h2 id="sec2_title">2. 配件自动搭配与物料清单 (BOM 清单)</h2>
+      <div class="small muted" id="sec2_desc">全部按对应比例进一法取整（Math.ceil），视频处理器作为第 18 项纳入清单。</div>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table class="bom-table">
+        <thead>
+          <tr>
+            <th style="width:60px">#</th>
+            <th id="th_name">名称</th>
+            <th id="th_spec">规格</th>
+            <th id="th_ratio">搭配比例</th>
+            <th id="th_qty">计算数量</th>
+            <th id="th_unit">单位</th>
+          </tr>
+        </thead>
+        <tbody id="bomTableBody">
+          <!-- 动态渲染 -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 第 3 步：价格核算与单价/小计明细 (默认全为0 + 完整双币种显示) -->
+  <section class="panel">
+    <div class="section-title">
+      <h2 id="sec3_title">3. 造价核算、主线材、备品与总费用汇总</h2>
+      <div class="small muted" id="sec3_desc">所有单价均支持人民币 ¥ 与美金 $ 汇率互转；所有小计均显示双币种。</div>
+    </div>
+
+    <!-- 参考汇率 -->
+    <div style="margin-bottom:14px;padding:12px 14px;background:#f8fafc;border-radius:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <label style="margin:0;font-weight:600" id="lbl_rate">参考汇率 (USD/CNY)：</label>
+      <input id="exchange_rate" type="number" min="0.1" step="0.01" value="6.60" style="width:110px">
+      <span class="small muted" id="rate_desc">默认汇率 6.60，可随时按牌价修改。</span>
+    </div>
+
+    <!-- 双币种单价输入控制区 -->
+    <div class="grid cols-4">
+      <!-- 1. 屏幕单价 (默认 0) -->
+      <div class="field">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="font-weight:600;color:#1e293b;margin:0" id="lbl_pricing_method">屏幕计价方式</label>
+          <select id="price_mode" style="width:auto;padding:2px 6px;font-size:12px">
+            <option value="module" selected>按模组单价</option>
+            <option value="sqm">按每平方单价</option>
+          </select>
+        </div>
+        <div class="grid cols-2" style="margin-top:6px">
+          <div>
+            <label id="lbl_unit_cny">人民币 (¥)</label>
+            <input id="screen_unit_cny" type="number" min="0" step="any" placeholder="¥ 0.00" value="0">
+          </div>
+          <div>
+            <label id="lbl_unit_usd">美金 ($)</label>
+            <input id="screen_unit_usd" type="number" min="0" step="any" placeholder="$ 0.00" value="0">
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 主线材单价输入 (美金默认 19) -->
+      <div class="field">
+        <label style="font-weight:600;color:#1e293b" id="lbl_main_wire_title">主线材单价输入 (主电线 + 主网线)</label>
+        <div class="grid cols-2" style="margin-top:6px">
+          <div>
+            <label>主电线(10m) ¥</label>
+            <input id="pwr_wire_unit_cny" type="number" min="0" step="any" placeholder="¥">
+          </div>
+          <div>
+            <label>主电线(10m) $</label>
+            <input id="pwr_wire_unit_usd" type="number" min="0" step="any" value="19" placeholder="$">
+          </div>
+        </div>
+        <div class="grid cols-2" style="margin-top:6px">
+          <div>
+            <label>主网线(15m) ¥</label>
+            <input id="sig_wire_unit_cny" type="number" min="0" step="any" placeholder="¥">
+          </div>
+          <div>
+            <label>主网线(15m) $</label>
+            <input id="sig_wire_unit_usd" type="number" min="0" step="any" value="19" placeholder="$">
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 备品单价设定 (模组默认0，卡默认15，电源默认6) -->
+      <div class="field">
+        <label style="font-weight:600;color:#1e293b" id="lbl_spare_price">备品单价设定 (模组/卡/电源)</label>
+        <div class="grid cols-2" style="margin-top:6px">
+          <div>
+            <label>备品模组 ¥</label>
+            <input id="spare_mod_unit_cny" type="number" min="0" step="any" value="0" placeholder="¥">
+          </div>
+          <div>
+            <label>备品模组 $</label>
+            <input id="spare_mod_unit_usd" type="number" min="0" step="any" value="0" placeholder="$">
+          </div>
+        </div>
+        <div class="grid cols-2" style="margin-top:6px">
+          <div>
+            <label>备品卡 ¥</label>
+            <input id="spare_card_unit_cny" type="number" min="0" step="any" placeholder="¥">
+          </div>
+          <div>
+            <label>备品卡 $</label>
+            <input id="spare_card_unit_usd" type="number" min="0" step="any" value="15" placeholder="$">
+          </div>
+        </div>
+        <div class="grid cols-2" style="margin-top:6px">
+          <div>
+            <label>备品电源 ¥</label>
+            <input id="spare_power_unit_cny" type="number" min="0" step="any" placeholder="¥">
+          </div>
+          <div>
+            <label>备品电源 $</label>
+            <input id="spare_power_unit_usd" type="number" min="0" step="any" value="6" placeholder="$">
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. 处理器选择与价格 -->
+      <div class="field">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="font-weight:600;color:#1e293b;margin:0" id="lbl_proc">第18项：视频处理器</label>
+          <span class="small" id="proc_hint_badge" style="color:var(--accent);font-size:11px">智能推荐中</span>
+        </div>
+        <select id="proc_select" style="margin-bottom:6px">
+          <option value="LVP100+MSD300">LVP100+MSD300 (≤2网线)</option>
+          <option value="VX400">VX400 (3-4网线)</option>
+          <option value="VX600">VX600 (5-6网线)</option>
+          <option value="VX1000">VX1000 (7-10网线)</option>
+          <option value="VX16S">VX16S (11-16网线)</option>
+          <option value="VX2000">VX2000 (17-20网线)</option>
+          <option value="H2">H2 (>20网线)</option>
+          <option value="LVP100+MSD600">LVP100+MSD600</option>
+          <option value="TB 10">TB 10</option>
+          <option value="TB 20">TB 20</option>
+          <option value="TB 30">TB 30</option>
+          <option value="TB 40">TB 40</option>
+          <option value="TB 50">TB 50</option>
+          <option value="TB 60">TB 60</option>
+          <option value="custom">-- 手动输入自定义型号 --</option>
+        </select>
+        <input id="proc_custom_input" type="text" placeholder="输入自定义型号" style="display:none;margin-bottom:6px">
+        <div class="grid cols-2">
+          <div>
+            <label id="lbl_proc_cny">处理器价格 (¥)</label>
+            <input id="proc_price_cny" type="number" min="0" step="any" placeholder="¥">
+          </div>
+          <div>
+            <label id="lbl_proc_usd">处理器价格 ($)</label>
+            <input id="proc_price_usd" type="number" min="0" step="any" placeholder="$">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 运费设置 (默认0) -->
+    <div class="shipping-bar">
+      <div style="font-weight:600;min-width:140px;color:#1e293b" id="lbl_shipping_title">运费预算 / 运输成本:</div>
+      <div class="row" style="flex:1;max-width:320px">
+        <div style="flex:1">
+          <label style="margin-bottom:2px" id="lbl_ship_cny">人民币 (¥)</label>
+          <input id="shipping_cny" type="number" min="0" step="any" value="0" placeholder="¥ 0.00">
+        </div>
+        <div style="flex:1">
+          <label style="margin-bottom:2px" id="lbl_ship_usd">美金 ($)</label>
+          <input id="shipping_usd" type="number" min="0" step="any" value="0" placeholder="$ 0.00">
+        </div>
+      </div>
+      <div class="small muted" id="ship_desc" style="flex:2">默认金额为 0，按汇率实时互转。</div>
+    </div>
+
+    <!-- 细化结算分项卡片 (每个小计均包含人民币与美金) -->
+    <div class="cost-breakdown">
+      <!-- 屏幕费用 -->
+      <div class="cost-card">
+        <h3 id="card_title_screen">屏幕主体费用 (Screen Subtotal)</h3>
+        <div class="cost-line">
+          <span id="c_lbl_area">屏幕总面积</span>
+          <span id="c_val_area">51.15 ㎡</span>
+        </div>
+        <div class="cost-line">
+          <span id="c_lbl_basis">计价基准与单价</span>
+          <span id="c_val_basis">999 pcs × ¥0.00 ($0.00)</span>
+        </div>
+        <div class="cost-line" style="border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:6px">
+          <span style="font-weight:600" id="c_lbl_screen_sub">屏幕价格小计</span>
+          <span class="highlight" id="c_val_screen_sub">¥ 0.00 ($ 0.00)</span>
+        </div>
+      </div>
+
+      <!-- 主线材费用 -->
+      <div class="cost-card">
+        <h3 id="card_title_wire">主线材统计与费用 (Main Cables)</h3>
+        <div class="cost-line">
+          <span id="c_lbl_pwr_qty">主电源线 (10m)</span>
+          <span id="c_val_pwr_qty">10 根 (¥1,254.00 / $190.00)</span>
+        </div>
+        <div class="cost-line">
+          <span id="c_lbl_sig_qty">主信号线 (15m)</span>
+          <span id="c_val_sig_qty">13 根 (¥1,630.20 / $247.00)</span>
+        </div>
+        <div class="cost-line">
+          <span id="c_lbl_wire_tot_qty">主线材总数量</span>
+          <span style="color:var(--accent);font-weight:700" id="c_val_wire_tot_qty">23 根</span>
+        </div>
+        <div class="cost-line" style="border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:6px">
+          <span style="font-weight:600" id="c_lbl_wire_sub">线材费用小计</span>
+          <span class="highlight" id="c_val_wire_sub">¥ 2,884.20 ($ 437.00)</span>
+        </div>
+      </div>
+
+      <!-- 备品费用 -->
+      <div class="cost-card">
+        <h3 id="card_title_spare">全部备品费用 (Spare Subtotal)</h3>
+        <div class="cost-line">
+          <span id="c_lbl_sp_mod">备品模组</span>
+          <span id="c_val_sp_mod">0 pcs (¥ 0.00 / $ 0.00)</span>
+        </div>
+        <div class="cost-line">
+          <span id="c_lbl_sp_other">备品卡 & 电源</span>
+          <span id="c_val_sp_other">卡: 0张 ｜ 电源: 0台 (¥ 0.00 / $ 0.00)</span>
+        </div>
+        <div class="cost-line" style="border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:6px">
+          <span style="font-weight:600" id="c_lbl_spare_sub">全部备品费用</span>
+          <span class="highlight" id="c_val_spare_sub">¥ 0.00 ($ 0.00)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 综合总价横幅看板 -->
+    <div class="summary-banner">
+      <div>
+        <div class="summary-meta">
+          <span>点间距: <b id="sum_meta_pitch">P2.5</b></span>
+          <span>总面积: <b id="sum_meta_area">51.15 ㎡</b></span>
+          <span>总像素点: <b id="sum_meta_pixels">8,183,808 点</b></span>
+        </div>
+        <div style="font-size:14px;color:#94a3b8" id="summary_banner_title">项目最终总费用汇总 (Grand Total)</div>
+        <div style="font-size:13px;color:#cbd5e1;margin-top:4px" id="summary_breakdown">
+          屏幕: ¥0.00 ($0.00) ｜ 主线材: ¥2,884.20 ($437.00) ｜ 备品: ¥0.00 ($0.00) ｜ 处理器: ¥0.00 ($0.00) ｜ 运费: ¥0.00 ($0.00)
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div class="big-total" id="grand_total_cny">¥ 2,884.20</div>
+        <div style="font-size:17px;color:#38bdf8;font-weight:600;margin-top:4px" id="grand_total_usd">$ 437.00</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- 依赖导出库 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+(() => {
+  const E = id => document.getElementById(id);
+
+  let lang = 'zh';
+  let userOverrodeProc = false;
+
+  let state = {
+    pitch: 2.5,
+    modW: 320,
+    modH: 160,
+    totalModules: 999,
+    singlePxW: 128,
+    singlePxH: 64,
+    singlePxTot: 8192,
+    totalPx: 8183808,
+    totalArea: 51.15,
+    mainPowerCables: 10,
+    mainNetCables: 13,
+    totalMainWires: 23,
+    spareMod: 0,
+    spareCard: 0,
+    sparePower: 0,
+    bomList: []
+  };
+
+  const I18N = {
+    zh: {
+      app_title: "LED模组配件BOM智能配比与报价器",
+      btn_lang: "EN",
+      export_excel: "导出完整 Excel (.xlsx)",
+      export_pdf: "导出 PDF 报价",
+      sec1_title: "1. 模组规格、点间距与数量设定",
+      sec1_desc: "设定基础参数，系统自动计算模组总面积与全屏总像素点数。",
+      lbl_pitch: "点间距规格 (Pixel Pitch)",
+      lbl_module: "模组规格尺寸 (宽 × 高)",
+      lbl_input_mode: "模组数量输入模式",
+      lbl_mod_qty: "模组数量设定 (Module Quantity Setup)",
+      stat_lbl_mod: "模组总数：",
+      stat_lbl_single_px: "单模组像素：",
+      stat_lbl_tot_px: "全屏总像素：",
+      stat_lbl_area: "总面积：",
+      sec2_title: "2. 配件自动搭配与物料清单 (BOM 清单)",
+      sec2_desc: "全部按对应比例进一法取整（Math.ceil），视频处理器作为第 18 项纳入清单。",
+      th_name: "名称",
+      th_spec: "规格",
+      th_ratio: "搭配比例",
+      th_qty: "计算数量",
+      th_unit: "单位",
+      sec3_title: "3. 造价核算、主线材、备品与总费用汇总",
+      sec3_desc: "所有单价均支持人民币 ¥ 与美金 $ 汇率互转；所有小计均显示双币种。",
+      lbl_rate: "参考汇率 (USD/CNY)：",
+      rate_desc: "默认汇率 6.60，可随时按牌价修改。",
+      lbl_pricing_method: "屏幕计价方式",
+      lbl_unit_cny: "人民币 (¥)",
+      lbl_unit_usd: "美金 ($)",
+      lbl_main_wire_title: "主线材单价输入 (主电线 + 主网线)",
+      lbl_spare_price: "备品单价设定 (模组/卡/电源)",
+      lbl_proc: "第18项：视频处理器",
+      lbl_proc_cny: "处理器价格 (¥)",
+      lbl_proc_usd: "处理器价格 ($)",
+      lbl_shipping_title: "运费预算 / 运输成本:",
+      lbl_ship_cny: "人民币 (¥)",
+      lbl_ship_usd: "美金 ($)",
+      ship_desc: "默认金额为 0，按汇率实时互转。",
+      card_title_screen: "屏幕主体费用 (Screen Subtotal)",
+      c_lbl_area: "屏幕总面积",
+      c_lbl_basis: "计价基准与单价",
+      c_lbl_screen_sub: "屏幕价格小计",
+      card_title_wire: "主线材统计与费用 (Main Cables)",
+      c_lbl_pwr_qty: "主电源线 (10m)",
+      c_lbl_sig_qty: "主信号线 (15m)",
+      c_lbl_wire_tot_qty: "主线材总数量",
+      c_lbl_wire_sub: "线材费用小计",
+      card_title_spare: "全部备品费用 (Spare Subtotal)",
+      c_lbl_sp_mod: "备品模组",
+      c_lbl_sp_other: "备品卡 & 电源",
+      c_lbl_spare_sub: "全部备品费用",
+      summary_banner_title: "项目最终总费用汇总 (Grand Total)"
+    },
+    en: {
+      app_title: "LED Module BOM & Accessories Costing Tool",
+      btn_lang: "中文",
+      export_excel: "Export Excel (.xlsx)",
+      export_pdf: "Export PDF Quote",
+      sec1_title: "1. Module Specs, Pitch & Quantities",
+      sec1_desc: "Configure specifications; screen area and total pixels are auto-calculated.",
+      lbl_pitch: "Pixel Pitch",
+      lbl_module: "Module Specification (W × H)",
+      lbl_input_mode: "Module Input Mode",
+      lbl_mod_qty: "Module Quantity Setup",
+      stat_lbl_mod: "Total Modules: ",
+      stat_lbl_single_px: "Single Module Px: ",
+      stat_lbl_tot_px: "Total Resolution: ",
+      stat_lbl_area: "Total Area: ",
+      sec2_title: "2. Accessories BOM & Quantities",
+      sec2_desc: "All items round up (Math.ceil) based on ratio formulas. Video processor included as #18.",
+      th_name: "Item Name",
+      th_spec: "Specification",
+      th_ratio: "Ratio",
+      th_qty: "Quantity",
+      th_unit: "Unit",
+      sec3_title: "3. Pricing, Main Cables, Spare Parts & Total Cost",
+      sec3_desc: "All unit prices support dual currency. Every subtotal displays both CNY and USD.",
+      lbl_rate: "Exchange Rate (USD/CNY):",
+      rate_desc: "Default rate is 6.60. Editable at any time.",
+      lbl_pricing_method: "Pricing Basis",
+      lbl_unit_cny: "CNY (¥)",
+      lbl_unit_usd: "USD ($)",
+      lbl_main_wire_title: "Main Cables Unit Price (Power + Net)",
+      lbl_spare_price: "Spare Parts Unit Price (Mod/Card/Power)",
+      lbl_proc: "Item #18: Video Processor",
+      lbl_proc_cny: "Processor Price (¥)",
+      lbl_proc_usd: "Processor Price ($)",
+      lbl_shipping_title: "Shipping Cost / Freight:",
+      lbl_ship_cny: "CNY (¥)",
+      lbl_ship_usd: "USD ($)",
+      ship_desc: "Defaults to 0, auto-converted via exchange rate.",
+      card_title_screen: "Screen Body Subtotal",
+      c_lbl_area: "Total Screen Area",
+      c_lbl_basis: "Pricing Basis & Unit",
+      c_lbl_screen_sub: "Screen Subtotal",
+      card_title_wire: "Main Cables Breakdown & Subtotal",
+      c_lbl_pwr_qty: "Main Power Cables (10m)",
+      c_lbl_sig_qty: "Main Net Cables (15m)",
+      c_lbl_wire_tot_qty: "Total Main Cables",
+      c_lbl_wire_sub: "Cables Subtotal",
+      card_title_spare: "Spare Parts Subtotal",
+      c_lbl_sp_mod: "Spare Modules",
+      c_lbl_sp_other: "Spare Cards & Power",
+      c_lbl_spare_sub: "Total Spare Cost",
+      summary_banner_title: "Project Grand Total Summary"
+    }
+  };
+
+  function getRate() {
+    const r = parseFloat(E('exchange_rate').value);
+    return (isFinite(r) && r > 0) ? r : 6.60;
+  }
+
+  function applyLanguage(l) {
+    lang = l;
+    const t = I18N[lang];
+    Object.keys(t).forEach(k => {
+      const el = E(k);
+      if (el) el.textContent = t[k];
+    });
+    calculateAll();
+  }
+
+  function autoPickProcessor(netCables) {
+    if (userOverrodeProc) return;
+
+    let rec = 'LVP100+MSD300';
+    if (netCables <= 2) rec = 'LVP100+MSD300';
+    else if (netCables <= 4) rec = 'VX400';
+    else if (netCables <= 6) rec = 'VX600';
+    else if (netCables <= 10) rec = 'VX1000';
+    else if (netCables <= 16) rec = 'VX16S';
+    else if (netCables <= 20) rec = 'VX2000';
+    else rec = 'H2';
+
+    E('proc_select').value = rec;
+    E('proc_custom_input').style.display = 'none';
+    E('proc_hint_badge').textContent = `匹配推荐: ${rec}`;
+  }
+
+  function updateSpecsAndModules() {
+    const pPreset = E('pitch_select').value;
+    state.pitch = (pPreset === 'custom') ? (parseFloat(E('custom_pitch_input').value) || 2.5) : (parseFloat(pPreset) || 2.5);
+
+    const modPreset = E('module_preset').value;
+    if (modPreset === 'custom') {
+      state.modW = parseFloat(E('custom_mod_w').value) || 320;
+      state.modH = parseFloat(E('custom_mod_h').value) || 160;
+    } else {
+      const [w, h] = modPreset.split('x').map(Number);
+      state.modW = w;
+      state.modH = h;
+    }
+
+    const mode = E('mod_input_mode').value;
+    if (mode === 'total') {
+      state.totalModules = parseInt(E('mod_total_input').value) || 0;
+    } else {
+      const c = parseInt(E('mod_cols').value) || 0;
+      const r = parseInt(E('mod_rows').value) || 0;
+      state.totalModules = c * r;
+    }
+
+    state.singlePxW = Math.round(state.modW / state.pitch);
+    state.singlePxH = Math.round(state.modH / state.pitch);
+    state.singlePxTot = state.singlePxW * state.singlePxH;
+    state.totalPx = state.singlePxTot * state.totalModules;
+    state.totalArea = (state.totalModules * (state.modW * state.modH)) / 1000000;
+
+    E('stat_val_mod').textContent = `${state.totalModules} pcs`;
+    E('stat_val_single_px').textContent = `${state.singlePxW} × ${state.singlePxH} = ${state.singlePxTot.toLocaleString()} 点`;
+    E('stat_val_tot_px').textContent = `${state.totalPx.toLocaleString()} 像素`;
+    E('stat_val_area').textContent = `${state.totalArea.toFixed(2)} ㎡`;
+
+    E('sum_meta_pitch').textContent = `P${state.pitch}`;
+    E('sum_meta_area').textContent = `${state.totalArea.toFixed(2)} ㎡`;
+    E('sum_meta_pixels').textContent = `${state.totalPx.toLocaleString()} 点`;
+  }
+
+  function buildBomList() {
+    const N = state.totalModules;
+    const isZh = (lang === 'zh');
+
+    const cardQty = Math.ceil(N / 12);
+    const powerQty = Math.ceil(N / 6);
+    const powerLinkCable = Math.ceil(N / 6);
+    const modPowerCable = Math.ceil(N / 2);
+    const netCable1_5m = Math.ceil(N / 12);
+    const cardPowerCable = Math.ceil(N / 12);
+    const flatCable40 = Math.ceil(N / 3);
+    const flatCable60 = Math.ceil(N / 3);
+    const flatCable80 = Math.ceil(N / 3);
+    const magnetQty = N * 4;
+
+    state.mainNetCables = state.totalPx > 0 ? Math.ceil(state.totalPx / 650000) : 0;
+    state.mainPowerCables = powerQty > 0 ? Math.ceil(powerQty / 18) : 0;
+    state.totalMainWires = state.mainNetCables + state.mainPowerCables;
+
+    autoPickProcessor(state.mainNetCables);
+
+    const procModel = E('proc_select').value === 'custom' ? (E('proc_custom_input').value || '自定义型号') : E('proc_select').value;
+
+    const list = [
+      { id: 1, name: isZh ? '点间距' : 'Pixel Pitch', spec: `P${state.pitch}`, ratio: '—', qty: `${state.totalPx.toLocaleString()} px`, unit: isZh ? '总点数' : 'Total Pixels' },
+      { id: 2, name: isZh ? '模组' : 'Module', spec: `${state.modW}*${state.modH}mm`, ratio: '—', qty: N, unit: 'pcs' },
+      { id: 3, name: isZh ? '接收卡' : 'Receiving Card', spec: '412', ratio: '12:1', qty: cardQty, unit: 'pcs' },
+      { id: 4, name: isZh ? '电源' : 'Power Supply', spec: '200W', ratio: '6:1', qty: powerQty, unit: 'pcs' },
+      { id: 5, name: isZh ? '电源互联线' : 'Power Linking Cable', spec: '1m', ratio: '6:1', qty: powerLinkCable, unit: 'pcs' },
+      { id: 6, name: isZh ? '模组电源线' : 'Module Power Cable', spec: '1-to-2 60cm', ratio: '2:1', qty: modPowerCable, unit: 'pcs' },
+      { id: 7, name: isZh ? '网线(接收卡互联)' : 'Network Cable (Card Link)', spec: '1.5m', ratio: '12:1', qty: netCable1_5m, unit: 'pcs' },
+      { id: 8, name: isZh ? '接收卡电源线' : 'Card Power Cable', spec: '45cm', ratio: '12:1', qty: cardPowerCable, unit: 'pcs' },
+      { id: 9, name: isZh ? '排线' : 'Ribbon Cable', spec: '40CM', ratio: '3:1', qty: flatCable40, unit: 'pcs' },
+      { id: 10, name: isZh ? '排线' : 'Ribbon Cable', spec: '60CM', ratio: '3:1', qty: flatCable60, unit: 'pcs' },
+      { id: 11, name: isZh ? '排线' : 'Ribbon Cable', spec: '80CM', ratio: '3:1', qty: flatCable80, unit: 'pcs' },
+      { id: 12, name: isZh ? '主网线' : 'Main Net Cable', spec: '15m', ratio: '650,000 px:1', qty: state.mainNetCables, unit: 'pcs' },
+      { id: 13, name: isZh ? '主电线' : 'Main Power Cable', spec: '10m', ratio: '18:1', qty: state.mainPowerCables, unit: 'pcs' },
+      { id: 14, name: isZh ? '备品模组' : 'Spare Module', spec: 'Same Batch', ratio: '—', qty: state.spareMod, isSpare: 'mod', unit: 'pcs' },
+      { id: 15, name: isZh ? '备品接收卡' : 'Spare Card', spec: 'Same Batch', ratio: '—', qty: state.spareCard, isSpare: 'card', unit: 'pcs' },
+      { id: 16, name: isZh ? '备品电源' : 'Spare Power', spec: 'Same Batch', ratio: '—', qty: state.sparePower, isSpare: 'power', unit: 'pcs' },
+      { id: 17, name: isZh ? '磁铁 (M4)' : 'Magnets (M4)', spec: '12/08 or 13/17', ratio: '1:4', qty: magnetQty, unit: 'pcs' },
+      { id: 18, name: isZh ? '视频处理器' : 'Video Processor', spec: procModel, ratio: '—', qty: 1, unit: 'pcs' }
+    ];
+
+    state.bomList = list;
+    renderBomTable();
+  }
+
+  function renderBomTable() {
+    const tbody = E('bomTableBody');
+    tbody.innerHTML = state.bomList.map(item => {
+      let qtyContent = item.qty;
+      if (item.isSpare) {
+        qtyContent = `<input type="number" min="0" value="${item.qty}" style="width:90px;padding:4px 8px;font-size:13px" oninput="updateSpare('${item.isSpare}', this.value)">`;
+      }
+      return `
+        <tr>
+          <td><span class="badge ${item.id===18 ? 'success' : ''}">${item.id}</span></td>
+          <td style="font-weight:600">${item.name}</td>
+          <td><span class="badge primary">${item.spec}</span></td>
+          <td style="color:#64748b">${item.ratio}</td>
+          <td style="font-weight:700;font-size:14px;color:#0f172a">${qtyContent}</td>
+          <td>${item.unit}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  window.updateSpare = function(type, val) {
+    const v = parseInt(val) || 0;
+    if (type === 'mod') state.spareMod = v;
+    if (type === 'card') state.spareCard = v;
+    if (type === 'power') state.sparePower = v;
+    recalcPricing();
+  };
+
+  // 全面计算并以双币种呈现所有小计
+  function recalcPricing() {
+    const rate = getRate();
+    const mode = E('price_mode').value;
+    const cnyUnit = parseFloat(E('screen_unit_cny').value) || 0;
+    const usdUnit = parseFloat(E('screen_unit_usd').value) || (cnyUnit / rate);
+
+    // 1. 屏幕主体小计 (双币种)
+    let screenSubCny = 0;
+    let screenSubUsd = 0;
+    if (mode === 'module') {
+      screenSubCny = state.totalModules * cnyUnit;
+      screenSubUsd = state.totalModules * usdUnit;
+      E('c_val_basis').textContent = `${state.totalModules} pcs × ¥${cnyUnit.toFixed(2)} ($${usdUnit.toFixed(2)})`;
+    } else {
+      screenSubCny = state.totalArea * cnyUnit;
+      screenSubUsd = state.totalArea * usdUnit;
+      E('c_val_basis').textContent = `${state.totalArea.toFixed(2)} ㎡ × ¥${cnyUnit.toFixed(2)}/㎡ ($${usdUnit.toFixed(2)}/㎡)`;
+    }
+    E('c_val_area').textContent = `${state.totalArea.toFixed(2)} ㎡`;
+    E('c_val_screen_sub').textContent = `¥ ${screenSubCny.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2})} ($ ${screenSubUsd.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})})`;
+
+    // 2. 主线材统计 (双币种)
+    const pwrWirePriceCny = parseFloat(E('pwr_wire_unit_cny').value) || 0;
+    const pwrWirePriceUsd = parseFloat(E('pwr_wire_unit_usd').value) || 0;
+    const sigWirePriceCny = parseFloat(E('sig_wire_unit_cny').value) || 0;
+    const sigWirePriceUsd = parseFloat(E('sig_wire_unit_usd').value) || 0;
+
+    const pwrSubCny = state.mainPowerCables * pwrWirePriceCny;
+    const pwrSubUsd = state.mainPowerCables * pwrWirePriceUsd;
+    const sigSubCny = state.mainNetCables * sigWirePriceCny;
+    const sigSubUsd = state.mainNetCables * sigWirePriceUsd;
+
+    const wireSubCny = pwrSubCny + sigSubCny;
+    const wireSubUsd = pwrSubUsd + sigSubUsd;
+
+    E('c_val_pwr_qty').textContent = `${state.mainPowerCables} 根 (¥${pwrSubCny.toFixed(2)} / $${pwrSubUsd.toFixed(2)})`;
+    E('c_val_sig_qty').textContent = `${state.mainNetCables} 根 (¥${sigSubCny.toFixed(2)} / $${sigSubUsd.toFixed(2)})`;
+    E('c_val_wire_tot_qty').textContent = `${state.totalMainWires} 根`;
+    E('c_val_wire_sub').textContent = `¥ ${wireSubCny.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2})} ($ ${wireSubUsd.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})})`;
+
+    // 3. 备品物料费用 (双币种)
+    const spModPriceCny = parseFloat(E('spare_mod_unit_cny').value) || 0;
+    const spModPriceUsd = parseFloat(E('spare_mod_unit_usd').value) || 0;
+    const spModCostCny = state.spareMod * spModPriceCny;
+    const spModCostUsd = state.spareMod * spModPriceUsd;
+
+    const spCardPriceCny = parseFloat(E('spare_card_unit_cny').value) || 0;
+    const spCardPriceUsd = parseFloat(E('spare_card_unit_usd').value) || 0;
+    const spPowerPriceCny = parseFloat(E('spare_power_unit_cny').value) || 0;
+    const spPowerPriceUsd = parseFloat(E('spare_power_unit_usd').value) || 0;
+
+    const spOtherCostCny = (state.spareCard * spCardPriceCny) + (state.sparePower * spPowerPriceCny);
+    const spOtherCostUsd = (state.spareCard * spCardPriceUsd) + (state.sparePower * spPowerPriceUsd);
+
+    const spareSubCny = spModCostCny + spOtherCostCny;
+    const spareSubUsd = spModCostUsd + spOtherCostUsd;
+
+    E('c_val_sp_mod').textContent = `${state.spareMod} pcs (¥ ${spModCostCny.toFixed(2)} / $ ${spModCostUsd.toFixed(2)})`;
+    E('c_val_sp_other').textContent = `卡: ${state.spareCard}张 ｜ 电源: ${state.sparePower}台 (¥ ${spOtherCostCny.toFixed(2)} / $ ${spOtherCostUsd.toFixed(2)})`;
+    E('c_val_spare_sub').textContent = `¥ ${spareSubCny.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2})} ($ ${spareSubUsd.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})})`;
+
+    // 4. 处理器与运费 (双币种)
+    const procCny = parseFloat(E('proc_price_cny').value) || 0;
+    const procUsd = parseFloat(E('proc_price_usd').value) || (procCny / rate);
+    const shipCny = parseFloat(E('shipping_cny').value) || 0;
+    const shipUsd = parseFloat(E('shipping_usd').value) || (shipCny / rate);
+
+    // 5. 最终总费用 (Grand Total)
+    const grandCny = screenSubCny + wireSubCny + spareSubCny + procCny + shipCny;
+    const grandUsd = screenSubUsd + wireSubUsd + spareSubUsd + procUsd + shipUsd;
+
+    E('grand_total_cny').textContent = `¥ ${grandCny.toLocaleString('zh-CN', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+    E('grand_total_usd').textContent = `$ ${grandUsd.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+
+    E('summary_breakdown').textContent = `屏幕: ¥${screenSubCny.toFixed(2)} ($${screenSubUsd.toFixed(2)}) ｜ 主线材(${state.totalMainWires}根): ¥${wireSubCny.toFixed(2)} ($${wireSubUsd.toFixed(2)}) ｜ 备品: ¥${spareSubCny.toFixed(2)} ($${spareSubUsd.toFixed(2)}) ｜ 处理器: ¥${procCny.toFixed(2)} ($${procUsd.toFixed(2)}) ｜ 运费: ¥${shipCny.toFixed(2)} ($${shipUsd.toFixed(2)})`;
+  }
+
+  function syncCurrencyPair(cnyId, usdId, source) {
+    const rate = getRate();
+    if (source === 'cny') {
+      const v = parseFloat(E(cnyId).value);
+      E(usdId).value = isFinite(v) ? (v / rate).toFixed(2) : '';
+    } else {
+      const v = parseFloat(E(usdId).value);
+      E(cnyId).value = isFinite(v) ? (v * rate).toFixed(2) : '';
+    }
+    recalcPricing();
+  }
+
+  function handleRateChange() {
+    const rate = getRate();
+    const pairs = [
+      ['screen_unit_cny', 'screen_unit_usd'],
+      ['pwr_wire_unit_cny', 'pwr_wire_unit_usd'],
+      ['sig_wire_unit_cny', 'sig_wire_unit_usd'],
+      ['spare_mod_unit_cny', 'spare_mod_unit_usd'],
+      ['spare_card_unit_cny', 'spare_card_unit_usd'],
+      ['spare_power_unit_cny', 'spare_power_unit_usd'],
+      ['proc_price_cny', 'proc_price_usd'],
+      ['shipping_cny', 'shipping_usd']
+    ];
+    pairs.forEach(([cId, uId]) => {
+      const u = parseFloat(E(uId).value);
+      if (isFinite(u) && u > 0) {
+        E(cId).value = (u * rate).toFixed(2);
+      } else {
+        const c = parseFloat(E(cId).value);
+        if (isFinite(c)) E(uId).value = (c / rate).toFixed(2);
+      }
+    });
+    recalcPricing();
+  }
+
+  function calculateAll() {
+    updateSpecsAndModules();
+    buildBomList();
+    recalcPricing();
+  }
+
+  ['custom_pitch_input', 'custom_mod_w', 'custom_mod_h', 'mod_total_input', 'mod_cols', 'mod_rows'].forEach(id => {
+    const el = E(id);
+    if (el) el.addEventListener('input', calculateAll);
+  });
+
+  const currencyPairs = [
+    ['screen_unit_cny', 'screen_unit_usd'],
+    ['pwr_wire_unit_cny', 'pwr_wire_unit_usd'],
+    ['sig_wire_unit_cny', 'sig_wire_unit_usd'],
+    ['spare_mod_unit_cny', 'spare_mod_unit_usd'],
+    ['spare_card_unit_cny', 'spare_card_unit_usd'],
+    ['spare_power_unit_cny', 'spare_power_unit_usd'],
+    ['proc_price_cny', 'proc_price_usd'],
+    ['shipping_cny', 'shipping_usd']
+  ];
+
+  currencyPairs.forEach(([cId, uId]) => {
+    const elC = E(cId);
+    const elU = E(uId);
+    if (elC) {
+      elC.addEventListener('input', () => syncCurrencyPair(cId, uId, 'cny'));
+      elC.addEventListener('blur', () => { const v = parseFloat(elC.value); if (isFinite(v)) elC.value = v.toFixed(2); });
+    }
+    if (elU) {
+      elU.addEventListener('input', () => syncCurrencyPair(cId, uId, 'usd'));
+      elU.addEventListener('blur', () => { const v = parseFloat(elU.value); if (isFinite(v)) elU.value = v.toFixed(2); });
+    }
+  });
+
+  E('exchange_rate').addEventListener('input', handleRateChange);
+  E('price_mode').addEventListener('change', recalcPricing);
+
+  E('pitch_select').addEventListener('change', e => {
+    E('custom_pitch_input').style.display = e.target.value === 'custom' ? 'block' : 'none';
+    calculateAll();
+  });
+
+  E('module_preset').addEventListener('change', e => {
+    E('customModuleWrap').style.display = e.target.value === 'custom' ? 'grid' : 'none';
+    calculateAll();
+  });
+
+  E('mod_input_mode').addEventListener('change', e => {
+    const isArray = e.target.value === 'array';
+    E('modeTotalWrap').style.display = isArray ? 'none' : 'block';
+    E('modeArrayWrap').style.display = isArray ? 'grid' : 'none';
+    calculateAll();
+  });
+
+  E('proc_select').addEventListener('change', e => {
+    userOverrodeProc = true;
+    E('proc_custom_input').style.display = e.target.value === 'custom' ? 'block' : 'none';
+    E('proc_hint_badge').textContent = '已手动指定';
+    buildBomList();
+    recalcPricing();
+  });
+
+  E('toggleLang').addEventListener('click', () => {
+    applyLanguage(lang === 'zh' ? 'en' : 'zh');
+  });
+
+  // 导出 Excel (.xlsx)（全面展示双币种）
+  E('exportExcel').addEventListener('click', () => {
+    const isZh = (lang === 'zh');
+    const proc = E('proc_select').value === 'custom' ? (E('proc_custom_input').value || 'Custom') : E('proc_select').value;
+    const mode = E('price_mode').value;
+    const dateStr = new Date().toISOString().slice(0,10);
+
+    const sheetData = [
+      [isZh ? '项目说明' : 'Project', 'LED Module BOM & Quotation Sheet', '', '', '', ''],
+      [isZh ? '导出日期' : 'Date', dateStr, isZh ? '汇率' : 'Rate', getRate(), '', ''],
+      [isZh ? '点间距' : 'Pitch', `P${state.pitch}`, isZh ? '模组规格' : 'Module Spec', `${state.modW}x${state.modH}mm`, '', ''],
+      [isZh ? '模组总数' : 'Modules', `${state.totalModules} pcs`, isZh ? '屏幕总面积' : 'Total Area', `${state.totalArea.toFixed(2)} sqm`, '', ''],
+      [isZh ? '全屏总像素' : 'Total Pixels', `${state.totalPx.toLocaleString()} px`, isZh ? '单模组像素' : 'Single Mod Px', `${state.singlePxW}x${state.singlePxH} px`, '', ''],
+      ['', '', '', '', '', ''],
+      [isZh ? '序号' : '#', isZh ? '物料名称' : 'Item Name', isZh ? '规格型号' : 'Specification', isZh ? '搭配比例' : 'Ratio', isZh ? '数量' : 'Quantity', isZh ? '单位' : 'Unit']
+    ];
+
+    state.bomList.forEach(item => {
+      sheetData.push([item.id, item.name, item.spec, item.ratio, item.qty, item.unit]);
+    });
+
+    sheetData.push(['', '', '', '', '', '']);
+    sheetData.push([isZh ? '--- 造价明细汇总 (Grand Total Summary) ---' : '--- Quotation Summary ---', '', '', '', '', '']);
+    sheetData.push([isZh ? '核心参数指标' : 'Core Specs', `Pitch: P${state.pitch} ｜ Area: ${state.totalArea.toFixed(2)} sqm ｜ Pixels: ${state.totalPx.toLocaleString()} px`, '', '', '', '']);
+    sheetData.push([isZh ? '计价模式' : 'Pricing Basis', mode === 'module' ? (isZh ? '按模组单价' : 'By Module') : (isZh ? '按每平米单价' : 'By Sqm'), '', '', '', '']);
+    sheetData.push([isZh ? '屏幕价格小计' : 'Screen Subtotal', E('c_val_screen_sub').textContent, '', '', '', '']);
+    sheetData.push([isZh ? '主线材总数量' : 'Total Main Cables', `${state.totalMainWires} pcs (Power: ${state.mainPowerCables}, Net: ${state.mainNetCables})`, '', '', '', '']);
+    sheetData.push([isZh ? '主线材费用小计' : 'Main Cables Subtotal', E('c_val_wire_sub').textContent, '', '', '', '']);
+    sheetData.push([isZh ? '全部备品费用' : 'Total Spare Parts', E('c_val_spare_sub').textContent, '', '', '', '']);
+    sheetData.push([isZh ? '第18项视频处理器' : 'Item #18 Processor', `${proc} (CNY ¥${parseFloat(E('proc_price_cny').value||0).toFixed(2)} / USD $${parseFloat(E('proc_price_usd').value||0).toFixed(2)})`, '', '', '', '']);
+    sheetData.push([isZh ? '运费' : 'Shipping Cost', `CNY ¥${parseFloat(E('shipping_cny').value||0).toFixed(2)} / USD $${parseFloat(E('shipping_usd').value||0).toFixed(2)}`, '', '', '', '']);
+    sheetData.push([isZh ? '最终总费用' : 'Grand Total Price', `${E('grand_total_cny').textContent} / ${E('grand_total_usd').textContent}`, '', '', '', '']);
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    ws['!cols'] = [{ wch: 8 }, { wch: 28 }, { wch: 24 }, { wch: 16 }, { wch: 18 }, { wch: 12 }];
+    ws['!views'] = [{ showGridLines: true }];
+
+    XLSX.utils.book_append_sheet(wb, ws, "BOM_Costing");
+    XLSX.writeFile(wb, `LED_BOM_Quotation_${dateStr}.xlsx`);
+  });
+
+  // 导出 PDF（双币种清晰呈现）
+  E('exportPdf').addEventListener('click', () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const isZh = (lang === 'zh');
+    const proc = E('proc_select').value === 'custom' ? (E('proc_custom_input').value || 'Custom') : E('proc_select').value;
+
+    doc.setFillColor(30, 41, 59);
+    doc.rect(0, 0, 210, 22, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.text(isZh ? 'LED 显示屏模组配件清单 (BOM) 与综合报价单' : 'LED Display Module BOM & Commercial Quotation', 14, 14);
+
+    doc.setTextColor(71, 85, 105);
+    doc.setFontSize(8.5);
+    doc.text(`Date: ${new Date().toLocaleDateString()}  |  USD/CNY: ${getRate()}  |  Pitch: P${state.pitch}  |  Area: ${state.totalArea.toFixed(2)} sqm  |  Pixels: ${state.totalPx.toLocaleString()} px`, 14, 28);
+
+    const headers = [
+      '#',
+      isZh ? '物料名称' : 'Item',
+      isZh ? '规格型号' : 'Specification',
+      isZh ? '搭配比例' : 'Ratio',
+      isZh ? '数量' : 'Qty',
+      isZh ? '单位' : 'Unit'
+    ];
+
+    const bodyData = state.bomList.map(item => [
+      item.id,
+      item.name,
+      item.spec,
+      item.ratio,
+      item.qty,
+      item.unit
+    ]);
+
+    doc.autoTable({
+      startY: 32,
+      head: [headers],
+      body: bodyData,
+      theme: 'grid',
+      styles: {
+        fontSize: 7.8,
+        cellPadding: 1.6,
+        valign: 'middle',
+        overflow: 'linebreak',
+        textColor: [15, 23, 42],
+        lineColor: [226, 232, 240],
+        lineWidth: 0.2
+      },
+      headStyles: {
+        fillColor: [37, 99, 235],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252]
+      },
+      columnStyles: {
+        0: { cellWidth: 12, halign: 'center' },
+        1: { cellWidth: 46, fontStyle: 'bold' },
+        2: { cellWidth: 44 },
+        3: { cellWidth: 26, halign: 'center' },
+        4: { cellWidth: 32, halign: 'center', fontStyle: 'bold' },
+        5: { cellWidth: 22, halign: 'center' }
+      },
+      margin: { left: 14, right: 14 }
+    });
+
+    let currentY = doc.lastAutoTable.finalY + 6;
+
+    // 造价汇总明细卡片
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(14, currentY, 182, 54, 3, 3, 'F');
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(9.5);
+    doc.text(`Quotation Summary: [ Pitch: P${state.pitch} ｜ Area: ${state.totalArea.toFixed(2)} sqm ｜ Pixels: ${state.totalPx.toLocaleString()} px ]`, 18, currentY + 7);
+
+    doc.setFontSize(8.2);
+    doc.setTextColor(71, 85, 105);
+    const lineSpacing = 6.2;
+    let tY = currentY + 14;
+
+    doc.text(`- Screen Body Subtotal: ${E('c_val_screen_sub').textContent}`, 18, tY);
+    doc.text(`- Main Cables Subtotal: ${E('c_val_wire_sub').textContent} (Total: ${state.totalMainWires} pcs)`, 18, tY + lineSpacing);
+    doc.text(`- Spare Parts Subtotal: ${E('c_val_spare_sub').textContent}`, 18, tY + lineSpacing * 2);
+    doc.text(`- Video Processor [#18 ${proc}]: CNY ¥${parseFloat(E('proc_price_cny').value||0).toFixed(2)} / USD $${parseFloat(E('proc_price_usd').value||0).toFixed(2)}`, 18, tY + lineSpacing * 3);
+    doc.text(`- Shipping Cost: CNY ¥${parseFloat(E('shipping_cny').value||0).toFixed(2)} / USD $${parseFloat(E('shipping_usd').value||0).toFixed(2)}`, 18, tY + lineSpacing * 4);
+
+    doc.setFontSize(10.5);
+    doc.setTextColor(37, 99, 235);
+    doc.text(`Grand Total Price:  ${E('grand_total_cny').textContent}  /  ${E('grand_total_usd').textContent}`, 18, tY + lineSpacing * 5 + 3);
+
+    doc.save(`LED_Module_BOM_${new Date().toISOString().slice(0,10)}.pdf`);
+  });
+
+  // 初始化执行默认数值折算与计算
+  const initRate = 6.60;
+  // 屏幕默认 0
+  E('screen_unit_cny').value = '0';
+  E('screen_unit_usd').value = '0';
+  // 线材美金 19 -> 人民币
+  E('pwr_wire_unit_cny').value = (19 * initRate).toFixed(2);
+  E('sig_wire_unit_cny').value = (19 * initRate).toFixed(2);
+  // 备品模组默认 0
+  E('spare_mod_unit_cny').value = '0';
+  E('spare_mod_unit_usd').value = '0';
+  // 备品卡美金 15 -> 人民币
+  E('spare_card_unit_cny').value = (15 * initRate).toFixed(2);
+  // 备品电源美金 6 -> 人民币
+  E('spare_power_unit_cny').value = (6 * initRate).toFixed(2);
+
+  calculateAll();
+})();
+</script>
+</body>
+</html>
